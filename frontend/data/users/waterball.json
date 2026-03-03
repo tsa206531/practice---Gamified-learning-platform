@@ -1,0 +1,17 @@
+{
+  "id": "u_waterball",
+  "username": "waterball",
+  "name": "水球潘",
+  "email": "waterball@example.com",
+  "studentId": "202412345",
+  "occupation": "軟體工程師",
+  "level": 5,
+  "completedGyms": 6,
+  "birthday": "1990-01-01",
+  "gender": "男",
+  "location": "台北市",
+  "githubUrl": "https://github.com/waterball",
+  "discordConnected": true,
+  "githubConnected": true,
+  "avatar": "/placeholder.svg?key=hg920"
+}

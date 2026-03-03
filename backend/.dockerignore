@@ -1,0 +1,18 @@
+# Build outputs
+/target
+
+# IDE and tooling
+/.idea
+/.vscode
+**/*.iml
+
+# Maven wrapper cache (optional to keep)
+.mvn/
+
+# Git
+.git
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db

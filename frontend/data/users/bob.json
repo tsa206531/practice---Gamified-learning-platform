@@ -1,0 +1,17 @@
+{
+  "id": "u_bob",
+  "username": "bob",
+  "name": "小博",
+  "email": "bob@example.com",
+  "studentId": "202412347",
+  "occupation": "前端工程師",
+  "level": 7,
+  "completedGyms": 10,
+  "birthday": "1992-11-11",
+  "gender": "男",
+  "location": "台中市",
+  "githubUrl": "https://github.com/bob",
+  "discordConnected": true,
+  "githubConnected": false,
+  "avatar": "/placeholder.jpg"
+}

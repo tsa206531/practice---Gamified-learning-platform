@@ -1,0 +1,8 @@
+spring:
+  flyway:
+    enabled: true
+
+# 如需除錯，可暫時開啟 Flyway 相關日志（啟用後請記得還原）
+# logging:
+#   level:
+#     org.flywaydb: DEBUG

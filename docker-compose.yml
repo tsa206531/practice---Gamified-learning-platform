@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # 後端 Spring Boot 服務
+  backend:
+    build:
+      context: ./backend # 指定 Dockerfile 所在的目錄
+    ports:
+      - "${BACKEND_PORT:-8080}:8080" # 將本機的 BACKEND_PORT 映射到容器的 8080 port
+    environment:
+      # 設定 Spring Boot 連接資料庫的環境變數
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-appdb}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-appuser}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-apppass}
+      - SPRING_PROFILES_ACTIVE=docker # 啟用 docker 環境的設定檔
+      # Google OAuth 設定（後端會用來驗證 idToken 的 aud）
+      - GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # 啟動穩定性：Flyway 重試、Hikari 初始化不快速失敗（0=不超時）
+      - SPRING_FLYWAY_CONNECT_RETRIES=10
+      - SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT=0
+    # 在容器內等待 db 的 DNS 可解析後再啟動，避免 UnknownHostException: db
+    command: ["sh", "-c", "until getent hosts db; do echo 'waiting for db DNS...'; sleep 1; done; echo 'db resolved'; java -jar app.jar"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - waterball-network
+
+  # 前端 Next.js 服務
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+
+    ports:
+    - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+    # 設定前端連接後端 API 的 URL（容器內請用服務名稱與容器埠）
+    - NEXT_PUBLIC_API_BASE_URL=http://backend:8080
+    
+    # Google Login 正常必備（前端環境變數）
+    - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+
+    # Cloudinary 環境變數
+    - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=您的CloudinaryCloudName
+    - NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=您的CloudinaryUploadPreset
+    
+    depends_on:
+    - backend
+    networks:
+    - waterball-network
+
+  # PostgreSQL 資料庫服務
+  db:
+    image: postgres:15 # 使用 PostgreSQL 15 映像檔
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432" # 對外暴露 Postgres 連接埠，方便本機連線
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-appdb} # 設定資料庫名稱（可用 .env 覆寫）
+      - POSTGRES_USER=${POSTGRES_USER:-appuser} # 設定使用者名稱（可用 .env 覆寫）
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-apppass} # 設定密碼（可用 .env 覆寫）
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-appdb}"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 20
+    volumes:
+      - db_data:/var/lib/postgresql/data # 將資料庫資料持久化儲存
+    networks:
+      - waterball-network
+
+networks:
+  waterball-network:
+    driver: bridge
+
+volumes:
+  db_data:

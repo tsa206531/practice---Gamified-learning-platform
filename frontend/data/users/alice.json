@@ -1,0 +1,17 @@
+{
+  "id": "u_alice",
+  "username": "alice",
+  "name": "愛麗絲",
+  "email": "alice@example.com",
+  "studentId": "202412346",
+  "occupation": "產品經理",
+  "level": 3,
+  "completedGyms": 2,
+  "birthday": "1994-05-20",
+  "gender": "女",
+  "location": "新北市",
+  "githubUrl": "https://github.com/alice",
+  "discordConnected": false,
+  "githubConnected": true,
+  "avatar": "/placeholder-user.jpg"
+}
