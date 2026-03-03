@@ -22,9 +22,9 @@ export function MainLayout({ children, isLoggedIn = false }: MainLayoutProps) {
             <Zap className="h-6 w-6 text-white" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            水球軟體學院(面試作品)
+            火球體育學院
             <br />
-            WATERBALLSA.TW
+            (面試作品)
           </span>
         </div>
         <SidebarNav />
