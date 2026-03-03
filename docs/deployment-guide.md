@@ -1,6 +1,6 @@
-# 部署指南：前端至 Vercel，後端與資料庫至 Zeabur
+# 部署指南：前端至 Vercel，後端與資料庫至 Render
 
-由於專案已停止開發並轉換為靜態作品展示目的，此文件記錄如何將前端（Next.js）部署至 Vercel，並將後端（Spring Boot API）與資料庫（PostgreSQL）部署至 Zeabur 的詳細步驟。
+由於專案已停止開發並轉換為靜態作品展示目的，此文件記錄如何將前端（Next.js）部署至 Vercel，並將後端（Spring Boot API）與資料庫（PostgreSQL）部署至 Render 的詳細步驟。
 
 這種部署架構能最大化利用兩方平台的免費額度，並維持相對簡單的維護成本。
 
@@ -8,48 +8,52 @@
 
 ## 佈署順序建議
 
-請務必**先部署後端與資料庫 (Zeabur)**，再部署**前端 (Vercel)**。
+請務必**先部署後端與資料庫 (Render)**，再部署**前端 (Vercel)**。
 理由是前端 Next.js 部署時，需要設定後端的 API 網址（`NEXT_PUBLIC_API_BASE_URL`）作為環境變數。
 
 ---
 
-## 步驟一：在 Zeabur 部署後端 (Spring Boot) 與 PostgreSQL
+## 步驟一：在 Render 部署後端 (Spring Boot) 與 PostgreSQL
 
-因為這是一個 Monorepo（前後端原始碼在同一個 Git Repository），Zeabur 提供了很方便的 Root Directory 設定功能。
+因為這是一個 Monorepo（前後端原始碼在同一個 Git Repository），Render 提供了很方便的 Root Directory 設定功能。
 
-### 1. 建立 Zeabur 專案與資料庫
+### 1. 建立 Render 資料庫
 
-1. 登入 Zeabur，點擊 **Create Project** 建立一個新專案。
-2. 在新專案中，點擊 **Add Service** -> 選擇 **Prebuilt** -> 找到並新增 **PostgreSQL**。
-3. 等待資料庫啟動完成。點擊該 PostgreSQL 服務，進入 **Instructions** 頁籤。
-4. 這裡會顯示資料庫的連線帳密與位址（例如：`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`）。這在稍後會用到。
+1. 登入 Render，點擊 **New** -> **PostgreSQL**。
+2. 填寫 Name (例如: `waterballsa-db`)，拉到最下面的 Instance Type 選擇 **Free (免費)**，點擊 **Create PostgreSQL**。
+3. 建立完成後，在畫面上找到 **Internal Database URL**（開頭會是 `postgres://...`），把這整串複製下來。它等同於包含了所有的連線帳號密碼與資料庫位址。
 
 ### 2. 後端程式碼修改 (Spring Boot)
 
-為了讓 Spring Boot 能動態讀取 Zeabur 注入的 PostgreSQL 環境變數，你需要修改後端的 `application.properties` (或 `application.yml`)。
+為了讓 Spring Boot 能動態讀取 Render 的設定，你需要將原有的變數對接 `Internal Database URL`。但因為我們原本的架構是拆散的（`POSTGRES_HOST`, `_PORT`, `_USER`, `_PASSWORD`），最簡單的方式就是在 Render 的 **Web Service** 中直接建立這些分散的變數。
 
-**修改 `backend/src/main/resources/application.properties`**：
+如果你使用的是 `application.yml`，它原本應該長這樣：
 
-```properties
-# 讓 Spring Boot 讀取 Zeabur 提供的環境變數 (通常字首為 POSTGRES_)
-spring.datasource.url=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-spring.datasource.username=${POSTGRES_USER}
-spring.datasource.password=${POSTGRES_PASSWORD}
+```yaml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/appdb}
+    username: ${SPRING_DATASOURCE_USERNAME:appuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:apppass}
 ```
 
-**CORS 設定提醒**：
-前端部署到 Vercel 後會有一個專屬網域（例如：`https://my-portfolio-frontend.vercel.app`）。
-請記得在後端的 **Spring Security 或是 WebMvcConfigurer 的 CORS 設定** 中，將這個未來的 Vercel 網域加入到 allowed origins 清單，否則前端會有 CORS 錯誤。
+_（不需要修改程式碼，我們在渲染端設定即可）_
 
-### 3. 從 GitHub 部署後端服務
+### 3. 從 GitHub 部署後端 API (Web Service)
 
-1. 在同一個 Zeabur 專案中，點擊 **Add Service** -> 選擇 **Git** -> 授權並選擇你的 GitHub 儲存庫。
-2. 服務新增後，進入該服務的 **Settings** (設定) 頁面。
-3. 找到 **Build & Deploy** -> 將 **Root Directory** 設定為 `backend`。
-   _(Zeabur 會進入該目錄尋找 `pom.xml` 或 `Dockerfile` 並自動打包 Java 專案)_
-4. 進入 **Variables** (環境變數) 頁面，確認是否需要手動補齊變數（通常 Zeabur 內同專案的 Service 變數會自動分享，但若有 Google OAuth 等自訂變數，如 `GOOGLE_CLIENT_ID`，請手動加入）。
-5. 部署成功後，進入 **Domain** 頁籤，綁定一個免費的 `.zeabur.app` 網域（例如：`waterball-api.zeabur.app`）。
-6. **記下此域名**，這是接下來 Vercel 前端要串接的 API Base URL。
+1. 回到 Render Dashboard，點擊 **New** -> **Web Service**。
+2. 選擇 **Build and deploy from a Git repository**，授權並連線你的 GitHub。
+3. 進入設定畫面，這非常關鍵：
+   - **Name**: （隨便填，例如 `waterballsa-api`）
+   - **Root Directory**: `backend` (非常重要！)
+   - **Environment**: 選擇 `Docker` (這會讓 Render 自動去吃你的 `backend/Dockerfile`，省去寫 Maven 編譯指令的麻煩)
+   - **Instance Type**: 免費方案 (Free)
+4. 點擊畫面下方的 **Advanced**，新增環境變數 (Environment Variables)：
+   - 新增 `SPRING_DATASOURCE_URL`：填寫 `jdbc:postgresql://...` (把剛才複製的 Internal Database URL 開頭的 `postgres://` 換成 `jdbc:postgresql://`，其餘照抄)
+   - （如有密碼或帳號需要拆開設定，請參考該畫面的 Username 與 Password，通常直接把整串塞給 SPRING_DATASOURCE_URL 即可）
+   - 新增 Google OAuth 金鑰（`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`）
+5. 點擊 **Create Web Service**，系統會開始執行你的 Dockerfile 將 Java 專案啟動！
+6. **記下此服務產生的網域名稱**（例如：`waterballsa-api.onrender.com`），這是接下來 Vercel 前端要串接的 API Base URL。
 
 ---
 
