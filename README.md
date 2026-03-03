@@ -1,5 +1,7 @@
 # Waterballsa 專案
 
+![專案預覽圖](img/01.jpg)
+
 這是一個前後端分離的全端應用系統，具備完整的身分驗證（Google OAuth + JWT）、資料庫遷移與整合 Docker 容器化部署環境。
 
 ## 🛠️ 技術棧 (Tech Stack)
